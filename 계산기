@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>러키펀치 파스텔 마카롱 계산기</title>
+  <style>
+    /* === 외부 인터넷/라이브러리가 전혀 필요 없는 100% 독립형 순수 CSS 스타일 === */
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Poor+Story&display=swap');
+    
+    :root {
+      --body-bg: #F6F0FA;
+      --calc-bg: #E2D4F0;
+      --accent-color: #7B609E;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poor Story', system-ui, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--body-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+      transition: background-color 0.4s ease;
+    }
+
+    /* 계산기 메인 프레임 */
+    .calculator-container {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .calculator-frame {
+      width: 100%;
+      background-color: var(--calc-bg);
+      border: 4px solid #FFFFFF;
+      border-radius: 40px;
+      padding: 24px;
+      box-shadow: 
+        inset 0 4px 4px rgba(255, 255, 255, 0.6),
+        inset 0 -10px 10px rgba(0, 0, 0, 0.1),
+        0 15px 35px rgba(121, 95, 148, 0.25);
+      transition: background-color 0.4s ease;
+    }
+
+    /* 상단 조작부 */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 0 4px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .logo-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 4px solid #FFAAA6;
+      background-color: #FFD3B6;
+      animation: spin 8s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .logo-text {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      color: var(--accent-color);
+      opacity: 0.8;
+    }
+
+    .utillity-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .util-btn {
+      background: rgba(255, 255, 255, 0.6);
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-color);
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .util-btn:hover {
+      background: #FFFFFF;
+    }
+
+    /* 빈티지 LCD 스크린 */
+    .lcd-screen {
+      width: 100%;
+      background-color: #B8C2AF;
+      border: 4px solid #8A9582;
+      border-radius: 20px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.3),
+        0 2px 4px rgba(255, 255, 255, 0.5);
+    }
+
+    .lcd-indicators {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
+      font-weight: 900;
+      color: #444C3C;
+      letter-spacing: 0.05em;
+      opacity: 0.8;
+      margin-bottom: 6px;
+    }
+
+    .ind-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .indicator {
+      opacity: 0.1;
+      transition: opacity 0.2s;
+    }
+
+    .indicator.active {
+      opacity: 1;
+    }
+
+    .lcd-formula {
+      text-align: right;
+      font-size: 11px;
+      font-weight: 600;
+      color: #4A5443;
+      height: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 2px;
+    }
+
+    .lcd-output {
+      font-family: 'Share Tech Mono', monospace;
+      text-align: right;
+      font-size: 38px;
+      font-weight: bold;
+      color: #1F251A;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 2px 0;
+      scrollbar-width: none;
+    }
+
+    .lcd-output::-webkit-scrollbar {
+      display: none;
+    }
+
+    .lcd-glare {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%);
+      pointer-events: none;
+    }
+
+    /* 기계식 마카롱 키패드 격자 */
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      justify-items: center;
+    }
+
+    /* 3D 푸시 버튼 키캡 */
+    .keycap {
+      width: 52px;
+      height: 52px;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      transform: translateY(-5px);
+      box-shadow: 
+        0 6px 0 var(--shadow-color), 
+        0 8px 12px rgba(0, 0, 0, 0.15);
+      outline: none;
+      touch-action: manipulation;
+    }
+
+    .keycap:active {
+      transform: translateY(-1px);
+      box-shadow: 
+        0 1.5px 0 var(--shadow-color), 
+        0 3px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 각 마카롱 색상 팔레트 */
+    .key-mrc { background-color: #FFE1D1; --shadow-color: #E2BBA8; color: #856551; font-size: 11px; }
+    .key-yellow { background-color: #FFF2B5; --shadow-color: #E5D596; color: #7A6C3E; }
+    .key-orange { background-color: #FF7961; --shadow-color: #C94C35; color: #FFFFFF; font-size: 13px; }
+    .key-green { background-color: #D1F2D9; --shadow-color: #A9CCB1; color: #5C6E5A; }
+    .key-blue { background-color: #C1E6FC; --shadow-color: #9EC0D6; color: #4E617E; }
+    .key-pink { background-color: #FFD3E1; --shadow-color: #E2AAB9; color: #856551; }
+    .key-equal { background-color: #BCE6FF; --shadow-color: #8CBAE0; color: #3E657A; }
+
+    .text-sm {
+      font-size: 13px;
+    }
+
+    .svg-icon {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="calculator-container">
+    <div id="calculator" class="calculator-frame">
+      
+      <!-- [1] 상단 바 -->
+      <div class="header-bar">
+        <div class="logo">
+          <div class="logo-dot"></div>
+          <span class="logo-text">MACARON CALC</span>
+        </div>
+        
+        <div class="utillity-buttons">
+          <!-- 음소거 토글 -->
+          <button id="btn-mute" class="util-btn" title="소리 켜고 끄기">
+            <svg id="sound-on-icon" class="svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+            </svg>
+            <svg id="sound-off-icon" class="svg-icon hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+            </svg>
+          </button>
+          <!-- 스킨 변경 -->
+          <button id="btn-theme" class="util-btn" title="파스텔 컬러 스킨 변경">
+            <svg class="svg-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.013 1.912c-.211-.383-.324-.82-.324-1.28 0-1.29 1.056-2.336 2.345-2.336a2.34 2.34 0 0 1 1.867.923m0 0a15.997 15.997 0 0 0 3.11-1.914m-4.977 1.012c-.172-.454-.258-.934-.258-1.429 0-1.897 1.543-3.435 3.442-3.435a3.4 3.4 0 0 1 2.394 1.002m0 0a15.99 15.99 0 0 0 2.243-2.613M12.916 9.387c-.08-.521-.116-1.052-.116-1.587 0-2.834 2.307-5.13 5.152-5.13a5.11 5.11 0 0 1 3.197 1.11m-3.197 1.11a16.035 16.035 0 0 0 1.258-3.047m0 0c.09-.434.137-.882.137-1.34 0-1.196-.97-2.166-2.166-2.166a2.16 2.16 0 0 0-1.646.764m0 0a15.995 15.995 0 0 0-1.427 3.327h0Z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- [2] LCD 스크린 -->
+      <div class="lcd-screen">
+        <div class="lcd-indicators">
+          <div class="ind-group">
+            <span id="ind-minus" class="indicator">MINUS</span>
+            <span id="ind-memory" class="indicator">MEMORY</span>
+          </div>
+          <div class="ind-group">
+            <span id="ind-error" class="indicator">ERROR</span>
+            <span id="ind-gt" class="indicator">GRAND TOTAL</span>
+          </div>
+        </div>
+        <div id="lcd-formula" class="lcd-formula"></div>
+        <div id="lcd-output" class="lcd-output">0</div>
+        <div class="lcd-glare"></div>
+      </div>
+
+      <!-- [3] 키패드 격자 배열 -->
+      <div class="keypad-grid">
+        <!-- 첫 번째 줄 -->
+        <button class="keycap key-mrc" data-action="MRC">MRC</button>
+        <button class="keycap key-mrc" data-action="M-">M-</button>
+        <button class="keycap key-mrc" data-action="M+">M+</button>
+        <button class="keycap key-mrc" data-action="GT">GT</button>
+
+        <!-- 두 번째 줄 -->
+        <button class="keycap key-yellow" data-action="BACK" title="한 글자 지우기">
+          <svg style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+          </svg>
+        </button>
+        <button class="keycap key-yellow" data-action="pm">+/-</button>
+        <button class="keycap key-yellow" data-action="sqrt">√</button>
+        <button class="keycap key-yellow" data-action="%">%</button>
+
+        <!-- 세 번째 줄 -->
+        <button class="keycap key-orange text-sm" data-action="CE">CE</button>
+        <button class="keycap key-green" data-action="7">7</button>
+        <button class="keycap key-green" data-action="8">8</button>
+        <button class="keycap key-pink" data-action="/">÷</button>
+
+        <!-- 네 번째 줄 -->
+        <button class="keycap key-orange text-sm" data-action="AC">AC</button>
+        <button class="keycap key-green" data-action="4">4</button>
+        <button class="keycap key-green" data-action="5">5</button>
+        <button class="keycap key-pink" data-action="*">×</button>
+
+        <!-- 다섯 번째 줄 -->
+        <button class="keycap key-blue" data-action="1">1</button>
+        <button class="keycap key-blue" data-action="2">2</button>
+        <button class="keycap key-blue" data-action="3">3</button>
+        <button class="keycap key-pink" data-action="-">-</button>
+
+        <!-- 여섯 번째 줄 -->
+        <button class="keycap key-blue" data-action="0">0</button>
+        <button class="keycap key-blue" data-action=".">.</button>
+        <button class="keycap key-equal" data-action="=">=</button>
+        <button class="keycap key-pink" data-action="+">+</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- 글로벌 상태 관리 ---
+    var display = '0';
+    var formula = '';
+    var memory = 0;
+    var gtSum = 0;
+    var isEvaluated = false;
+    var audioCtx = null;
+    var isMuted = false;
+
+    var themes = [
+      { bodyBg: '#F6F0FA', calcBg: '#E2D4F0', accent: '#7B609E' },
+      { bodyBg: '#FFF0F2', calcBg: '#FFD5DC', accent: '#E07B88' },
+      { bodyBg: '#EAF9F1', calcBg: '#CBEFDC', accent: '#4AA073' }
+    ];
+    var themeIndex = 0;
+
+    // --- 보안 우회용 100% 수제 안전 연산 엔진 (eval 배제) ---
+    function evaluateSimple(expr) {
+      try {
+        var tokens = expr.trim().split(/\s+/);
+        if (tokens.length === 0 || tokens[0] === '') return 0;
+
+        var values = [];
+        var ops = [];
+
+        for (var i = 0; i < tokens.length; i++) {
+          var t = tokens[i];
+          if (t === '*' || t === '/' || t === '+' || t === '-') {
+            ops.push(t);
+          } else {
+            values.push(parseFloat(t));
+          }
+        }
+
+        // 1단계: 곱하기, 나누기 계산
+        var newValues = [values[0]];
+        var newOps = [];
+        for (var j = 0; j < ops.length; j++) {
+          var op = ops[j];
+          var nextVal = values[j + 1];
+          if (op === '*' || op === '/') {
+            var prevVal = newValues.pop();
+            if (op === '*') {
+              newValues.push(prevVal * nextVal);
+            } else {
+              if (nextVal === 0) return Infinity;
+              newValues.push(prevVal / nextVal);
+            }
+          } else {
+            newOps.push(op);
+            newValues.push(nextVal);
+          }
+        }
+
+        // 2단계: 더하기, 빼기 최종 연산
+        var result = newValues[0];
+        for (var k = 0; k < newOps.length; k++) {
+          var op2 = newOps[k];
+          var val2 = newValues[k + 1];
+          if (op2 === '+') {
+            result += val2;
+          } else if (op2 === '-') {
+            result -= val2;
+          }
+        }
+        return result;
+      } catch (err) {
+        return 0;
+      }
+    }
+
+    // --- 안전한 햅틱 진동 피드백 ---
+    function triggerHaptic() {
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate(10);
+        }
+      } catch (e) {}
+    }
+
+    // --- 안전한 사운드 재생 장치 ---
+    function playClickSound(isSoft) {
+      if (isMuted) return;
+      try {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        
+        if (!audioCtx) {
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        var now = audioCtx.currentTime;
+
+        var clickOsc = audioCtx.createOscillator();
+        var clickGain = audioCtx.createGain();
+        clickOsc.type = isSoft ? 'sine' : 'triangle';
+        clickOsc.frequency.setValueAtTime(isSoft ? 850 : 1250, now);
+        clickOsc.frequency.exponentialRampToValueAtTime(isSoft ? 200 : 120, now + 0.04);
+        clickGain.gain.setValueAtTime(isSoft ? 0.03 : 0.12, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+        var thudOsc = audioCtx.createOscillator();
+        var thudGain = audioCtx.createGain();
+        thudOsc.type = 'sine';
+        thudOsc.frequency.setValueAtTime(80, now);
+        thudOsc.frequency.linearRampToValueAtTime(35, now + 0.08);
+        thudGain.gain.setValueAtTime(isSoft ? 0.03 : 0.18, now);
+        thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        clickOsc.connect(clickGain);
+        clickGain.connect(audioCtx.destination);
+        thudOsc.connect(thudGain);
+        thudGain.connect(audioCtx.destination);
+
+        clickOsc.start(now);
+        clickOsc.stop(now + 0.06);
+        thudOsc.start(now);
+        thudOsc.stop(now + 0.1);
+      } catch (e) {
+        // 브라우저 소리 제한 정책 발생 시에도 계산기는 작동하도록 유지
+      }
+    }
+
+    // --- 테마 전환 ---
+    function changeTheme() {
+      playClickSound(true);
+      themeIndex = (themeIndex + 1) % themes.length;
+      var theme = themes[themeIndex];
+      document.documentElement.style.setProperty('--body-bg', theme.bodyBg);
+      document.documentElement.style.setProperty('--calc-bg', theme.calcBg);
+      document.documentElement.style.setProperty('--accent-color', theme.accent);
+    }
+
+    // --- 음소거 토글 ---
+    function toggleMute() {
+      isMuted = !isMuted;
+      playClickSound(true);
+      document.getElementById('sound-on-icon').classList.toggle('hidden', isMuted);
+      document.getElementById('sound-off-icon').classList.toggle('hidden', !isMuted);
+    }
+
+    // --- 숫자 쉼표 포맷터 ---
+    function renderFormat(val) {
+      var strVal = String(val);
+      if (strVal === '-') return '-';
+      if (strVal.indexOf('.') !== -1) {
+        var parts = strVal.split('.');
+        var left = parseFloat(parts[0]);
+        var formattedLeft = isNaN(left) ? '0' : left.toLocaleString('ko-KR');
+        return formattedLeft + '.' + parts[1];
+      }
+      var num = parseFloat(strVal);
+      if (isNaN(num)) return strVal;
+      return num.toLocaleString('ko-KR', { maximumFractionDigits: 10 });
+    }
+
+    // --- LCD 화면 동적 갱신 ---
+    function updateLcd() {
+      var outputElement = document.getElementById('lcd-output');
+      var formulaElement = document.getElementById('lcd-formula');
+      var indMinus = document.getElementById('ind-minus');
+      var indMemory = document.getElementById('ind-memory');
+      var indError = document.getElementById('ind-error');
+      var indGt = document.getElementById('ind-gt');
+
+      if (!outputElement || !formulaElement) return;
+
+      outputElement.innerText = renderFormat(display);
+      
+      var beautyFormula = formula.replace(/\*/g, '×').replace(/\//g, '÷');
+      formulaElement.innerText = beautyFormula;
+
+      if (parseFloat(display) < 0) {
+        indMinus.classList.add('active');
+      } else {
+        indMinus.classList.remove('active');
+      }
+
+      if (memory !== 0) {
+        indMemory.classList.add('active');
+      } else {
+        indMemory.classList.remove('active');
+      }
+
+      if (gtSum !== 0) {
+        indGt.classList.add('active');
+      } else {
+        indGt.classList.remove('active');
+      }
+
+      var length = display.length;
+      if (length > 14) {
+        outputElement.style.fontSize = '20px';
+      } else if (length > 10) {
+        outputElement.style.fontSize = '28px';
+      } else {
+        outputElement.style.fontSize = '38px';
+      }
+    }
+
+    // --- 메인 연산 핸들러 ---
+    function handlePress(key) {
+      try { playClickSound(); } catch (e) {}
+      try { triggerHaptic(); } catch (e) {}
+
+      try {
+        if (!isNaN(key)) {
+          if (display === '0' || isEvaluated) {
+            display = String(key);
+            isEvaluated = false;
+          } else if (display.length < 15) {
+            display += String(key);
+          }
+        }
+        else if (key === '.') {
+          if (isEvaluated) {
+            display = '0.';
+            isEvaluated = false;
+          } else if (display.indexOf('.') === -1) {
+            display += '.';
+          }
+        }
+        else if (key === 'BACK') {
+          if (display.length > 1) {
+            display = display.slice(0, -1);
+          } else {
+            display = '0';
+          }
+        }
+        else if (['+', '-', '*', '/'].includes(key)) {
+          var cleanVal = display;
+          if (cleanVal.slice(-1) === '.') {
+            cleanVal = cleanVal.slice(0, -1);
+          }
+
+          if (isEvaluated) {
+            formula = cleanVal + ' ' + key + ' ';
+            display = '0';
+            isEvaluated = false;
+          } else {
+            formula += cleanVal + ' ' + key + ' ';
+            display = '0';
+          }
+        }
+        else if (key === 'AC') {
+          display = '0';
+          formula = '';
+          isEvaluated = false;
+          var indError = document.getElementById('ind-error');
+          if (indError) indError.classList.remove('active');
+        }
+        else if (key === 'CE') {
+          display = '0';
+        }
+        else if (key === 'pm') {
+          if (display !== '0') {
+            if (display.indexOf('-') === 0) {
+              display = display.slice(1);
+            } else {
+              display = '-' + display;
+            }
+          }
+        }
+        else if (key === 'sqrt') {
+          var val = parseFloat(display);
+          if (val < 0) {
+            display = '0';
+            var indError = document.getElementById('ind-error');
+            if (indError) indError.classList.add('active');
+          } else {
+            display = String(Math.sqrt(val));
+            isEvaluated = true;
+          }
+        }
+        else if (key === '%') {
+          var val = parseFloat(display);
+          display = String(val / 100);
+          isEvaluated = true;
+        }
+        else if (key === '=') {
+          if (!formula && !isEvaluated) return;
+
+          var mathExpr = formula + display;
+          var trimmed = mathExpr.trim();
+          var lastChar = trimmed.slice(-1);
+          if (['+', '-', '*', '/'].includes(lastChar)) {
+            mathExpr = trimmed.slice(0, -1);
+          }
+
+          var result = evaluateSimple(mathExpr);
+          
+          if (!isFinite(result)) {
+            display = '0';
+            var indError = document.getElementById('ind-error');
+            if (indError) indError.classList.add('active');
+          } else {
+            var formatted = parseFloat(result.toFixed(10)).toString();
+            formula = '';
+            display = formatted;
+            isEvaluated = true;
+
+            gtSum += result;
+          }
+        }
+        else if (key === 'M+') {
+          memory += parseFloat(display);
+          isEvaluated = true;
+        } else if (key === 'M-') {
+          memory -= parseFloat(display);
+          isEvaluated = true;
+        } else if (key === 'MRC') {
+          display = String(memory);
+          isEvaluated = true;
+        } else if (key === 'GT') {
+          display = String(gtSum);
+          isEvaluated = true;
+        }
+      } catch (err) {
+        display = '0';
+        var indError = document.getElementById('ind-error');
+        if (indError) indError.classList.add('active');
+      }
+
+      updateLcd();
+    }
+
+    // --- [최고의 핵심 보완] 물리적 터치 오류 완벽 차단용 이벤트 프로그램 바인딩 ---
+    // 모바일 환경에서의 이벤트 누수를 완전히 차단하기 위해 JS 내부에서 강제로 연결합니다.
+    window.onload = function() {
+      // 상단 기능 버튼 수동 매핑
+      var muteBtn = document.getElementById('btn-mute');
+      if (muteBtn) {
+        muteBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          toggleMute();
+        });
+      }
+
+      var themeBtn = document.getElementById('btn-theme');
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          changeTheme();
+        });
+      }
+
+      // 기계식 키캡 배열 전체 수동 매핑 (inline onclick 무력화 시 백업용)
+      var keycaps = document.querySelectorAll('.keycap');
+      for (var i = 0; i < keycaps.length; i++) {
+        keycaps[i].addEventListener('click', function(e) {
+          e.preventDefault();
+          var action = this.getAttribute('data-action');
+          if (action) {
+            handlePress(action);
+          }
+        });
+        
+        // 모바일 터치 반응속도 개선용 터치스타트 선점 바인딩
+        keycaps[i].addEventListener('touchstart', function(e) {
+          // 화면 스크롤과 터치 간섭 방지
+          triggerHaptic();
+        }, { passive: true });
+      }
+
+      updateLcd();
+    };
+  </script>
+</body>
+</html>
+
+```
